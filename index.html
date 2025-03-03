@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Emoji Pantry Raid</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Comic Sans MS', cursive, sans-serif;
+      background: linear-gradient(to bottom, #87CEEB, #E0F7FA);
+      overflow: hidden;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    #game-container {
+      position: relative;
+      width: 90%;
+      max-width: 600px;
+      height: 80vh;
+      background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><rect width="100" height="100" fill="white" opacity="0.8"/><path d="M0 0L100 100M100 0L0 100" stroke="lightgray" stroke-width="1"/></svg>');
+      border: 8px solid #8B4513;
+      border-radius: 15px;
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+      overflow: hidden;
+    }
+    
+    #player {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 100px;
+      height: 50px;
+      background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 50"><rect x="10" y="30" width="80" height="20" rx="5" fill="%23A52A2A"/><rect x="20" y="20" width="60" height="15" rx="5" fill="%23DEB887"/><rect x="30" y="10" width="40" height="15" rx="5" fill="%23A52A2A"/></svg>');
+      background-size: contain;
+      background-repeat: no-repeat;
+      transition: left 0.2s ease-out;
+      z-index: 10;
+    }
+    
+    .emoji {
+      position: absolute;
+      font-size: 40px;
+      user-select: none;
+      cursor: pointer;
+      transition: transform 0.1s;
+      z-index: 100; /* Ensures emojis are on top and clickable */
+    }
+    
+    .emoji:hover {
+      transform: scale(1.2);
+    }
+    
+    #score-container {
+      position: absolute;
+      top: 10px;
+      right: 20px;
+      background: rgba(255, 255, 255, 0.8);
+      padding: 10px 15px;
+      border-radius: 25px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+      font-size: 18px;
+      font-weight: bold;
+      color: #333;
+      z-index: 20;
+    }
+    
+    #level-container {
+      position: absolute;
+      top: 10px;
+      left: 20px;
+      background: rgba(255, 255, 255, 0.8);
+      padding: 10px 15px;
+      border-radius: 25px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+      font-size: 18px;
+      font-weight: bold;
+      color: #333;
+      z-index: 20;
+    }
+    
+    #time-container {
+      position: absolute;
+      top: 60px;
+      right: 20px;
+      background: rgba(255, 255, 255, 0.8);
+      padding: 10px 15px;
+      border-radius: 25px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+      font-size: 18px;
+      font-weight: bold;
+      color: #333;
+      z-index: 20;
+    }
+    
+    #message {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 36px;
+      font-weight: bold;
+      text-align: center;
+      color: #FF6347;
+      background: rgba(255, 255, 255, 0.9);
+      padding: 20px 30px;
+      border-radius: 15px;
+      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+      z-index: 30;
+      opacity: 0;
+      transition: opacity 0.3s;
+      pointer-events: none;
+    }
+    
+    #start-screen {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255, 255, 255, 0.9);
+      z-index: 40;
+    }
+    
+    #game-title {
+      font-size: 46px;
+      font-weight: bold;
+      margin-bottom: 20px;
+      color: #FF6347;
+      text-shadow: 3px 3px 0 #FFA07A;
+    }
+    
+    .game-button {
+      background: linear-gradient(to bottom, #4CAF50, #2E8B57);
+      color: white;
+      border: none;
+      border-radius: 30px;
+      padding: 15px 30px;
+      font-size: 24px;
+      font-weight: bold;
+      margin: 10px;
+      cursor: pointer;
+      box-shadow: 0 6px 0 #1B5E20;
+      transition: all 0.1s;
+    }
+    
+    .game-button:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 9px 0 #1B5E20;
+    }
+    
+    .game-button:active {
+      transform: translateY(3px);
+      box-shadow: 0 3px 0 #1B5E20;
+    }
+    
+    #game-over {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0, 0, 0, 0.8);
+      z-index: 50;
+      display: none;
+    }
+    
+    #game-over-text {
+      font-size: 48px;
+      color: #FF6347;
+      margin-bottom: 20px;
+      text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.5);
+    }
+    
+    #final-score {
+      font-size: 36px;
+      color: white;
+      margin-bottom: 30px;
+    }
+    
+    .tooltip {
+      position: absolute;
+      top: 110px;
+      right: 20px;
+      background: rgba(255, 255, 255, 0.9);
+      padding: 15px;
+      border-radius: 10px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+      width: 180px;
+      z-index: 20;
+    }
+    
+    .tooltip h3 {
+      margin-top: 0;
+      text-align: center;
+      color: #333;
+    }
+    
+    .tooltip ul {
+      margin: 0;
+      padding-left: 20px;
+    }
+    
+    .tooltip li {
+      margin-bottom: 5px;
+      font-size: 14px;
+      color: #555;
+    }
+
+    .effect {
+      position: absolute;
+      font-size: 24px;
+      color: white;
+      font-weight: bold;
+      pointer-events: none;
+      animation: float-up 1s forwards;
+      text-shadow: 2px 2px 2px rgba(0, 0, 0, 0.5);
+      z-index: 15;
+    }
+    
+    @keyframes float-up {
+      0% {
+        opacity: 1;
+        transform: translateY(0);
+      }
+      100% {
+        opacity: 0;
+        transform: translateY(-50px);
+      }
+    }
+
+    .pulse {
+      animation: pulse 0.5s;
+    }
+    
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.3); }
+      100% { transform: scale(1); }
+    }
+
+    .shake {
+      animation: shake 0.5s;
+    }
+    
+    @keyframes shake {
+      0% { transform: translateX(0); }
+      25% { transform: translateX(-10px); }
+      50% { transform: translateX(10px); }
+      75% { transform: translateX(-10px); }
+      100% { transform: translateX(0); }
+    }
+
+    .combo-counter {
+      position: absolute;
+      top: 110px;
+      left: 20px;
+      background: linear-gradient(to bottom, #FF8C00, #FF4500);
+      color: white;
+      padding: 10px 15px;
+      border-radius: 25px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+      font-size: 18px;
+      font-weight: bold;
+      z-index: 20;
+    }
+  </style>
+</head>
+<body>
+  <div id="game-container">
+    <div id="player"></div>
+    <div id="score-container">Score: 0</div>
+    <div id="level-container">Level: 1</div>
+    <div id="time-container">Time: 60s</div>
+    <div id="message"></div>
+    <div class="combo-counter">Combo: 0x</div>
+    
+    <div class="tooltip">
+      <h3>Food Values</h3>
+      <ul>
+        <li>🥦 Healthy: +5 pts</li>
+        <li>🍔 Junk: +20 pts but speeds up!</li>
+        <li>💣 Bomb: -50 pts!</li>
+      </ul>
+    </div>
+    
+    <div id="start-screen">
+      <div id="game-title">Emoji Pantry Raid!</div>
+      <p>Catch the falling food emojis with your basket! Avoid bombs!</p>
+      <button id="start-button" class="game-button">START GAME</button>
+      <div style="margin-top: 20px; display: flex; gap: 20px; font-size: 36px;">
+        <div>🥦 = +5</div>
+        <div>🍔 = +20</div>
+        <div>💣 = -50</div>
+      </div>
+    </div>
+    
+    <div id="game-over">
+      <div id="game-over-text">GAME OVER</div>
+      <div id="final-score">Your Score: 0</div>
+      <button id="restart-button" class="game-button">PLAY AGAIN</button>
+    </div>
+  </div>
+
+  <script>
+    // Main game initialization
+    document.addEventListener('DOMContentLoaded', function() {
+      // Game elements
+      const gameContainer = document.getElementById('game-container');
+      const player = document.getElementById('player');
+      const scoreContainer = document.getElementById('score-container');
+      const levelContainer = document.getElementById('level-container');
+      const timeContainer = document.getElementById('time-container');
+      const messageElement = document.getElementById('message');
+      const startScreen = document.getElementById('start-screen');
+      const startButton = document.getElementById('start-button');
+      const gameOverScreen = document.getElementById('game-over');
+      const restartButton = document.getElementById('restart-button');
+      const finalScoreElement = document.getElementById('final-score');
+      const comboCounter = document.querySelector('.combo-counter');
+      
+      // Game state
+      let score = 0;
+      let level = 1;
+      let gameTime = 60;
+      let gameActive = false;
+      let gameWidth = gameContainer.offsetWidth;
+      let gameHeight = gameContainer.offsetHeight;
+      let playerWidth = player.offsetWidth;
+      let dropSpeed = 3;
+      let dropInterval = 800;
+      let healthyFoods = ['🥦', '🥕', '🍎', '🥗', '🍇', '🍉'];
+      let junkFoods = ['🍔', '🍕', '🍩', '🍟', '🍦', '🍫'];
+      let bombs = ['💣'];
+      let emojis = [];
+      let emojiIds = 0;
+      let spawnTimeout;
+      let speedModifier = 1;
+      let gameTimer;
+      let mousePos = { x: 0 };
+      let touchPos = { x: 0 };
+      let combo = 0;
+      let comboTimeout;
+      
+      // Initialize game
+      function initGame() {
+        score = 0;
+        level = 1;
+        gameTime = 60;
+        dropSpeed = 2;
+        dropInterval = 800;
+        speedModifier = 1;
+        combo = 0;
+        updateCombo();
+        
+        scoreContainer.textContent = `Score: ${score}`;
+        levelContainer.textContent = `Level: ${level}`;
+        timeContainer.textContent = `Time: ${gameTime}s`;
+        
+        // Clear any existing emojis
+        const existingEmojis = document.querySelectorAll('.emoji');
+        existingEmojis.forEach(emoji => {
+          emoji.remove();
+        });
+        emojis = [];
+        
+        // Position player in center
+        player.style.left = (gameWidth - playerWidth) / 2 + 'px';
+        
+        // Set game active state before spawning emojis
+        gameActive = true;
+        clearTimeout(spawnTimeout);
+        spawnEmoji();
+        
+        // Start game timer
+        if (gameTimer) clearInterval(gameTimer);
+        gameTimer = setInterval(updateGameTime, 1000);
+        
+        // Start animation frame for game loop
+        requestAnimationFrame(updateGame);
+      }
+      
+      // Update game time
+      function updateGameTime() {
+        if (!gameActive) return;
+        
+        gameTime--;
+        timeContainer.textContent = `Time: ${gameTime}s`;
+        
+        if (gameTime <= 0) {
+          endGame();
+        }
+      }
+      
+      // Spawn a new emoji
+      function spawnEmoji() {
+        if (!gameActive) return;
+        
+        // Determine emoji type based on probabilities
+        let emoji;
+        let random = Math.random();
+        
+        if (random < 0.2) {
+          // 20% chance for bomb
+          emoji = bombs[Math.floor(Math.random() * bombs.length)];
+        } else if (random < 0.6) {
+          // 40% chance for healthy food
+          emoji = healthyFoods[Math.floor(Math.random() * healthyFoods.length)];
+        } else {
+          // 40% chance for junk food
+          emoji = junkFoods[Math.floor(Math.random() * junkFoods.length)];
+        }
+        
+        // Create emoji element
+        const emojiElement = document.createElement('div');
+        emojiElement.className = 'emoji';
+        emojiElement.textContent = emoji;
+        emojiElement.style.left = Math.random() * (gameWidth - 40) + 'px';
+        emojiElement.style.top = '-50px';
+        emojiElement.dataset.id = emojiIds++;
+        emojiElement.dataset.type = bombs.includes(emoji) ? 'bomb' : 
+                                    healthyFoods.includes(emoji) ? 'healthy' : 'junk';
+        
+        // Add pointerdown handler (instead of click)
+        emojiElement.addEventListener('pointerdown', handleEmojiClick);
+        
+        // Add to game container and emojis array
+        gameContainer.appendChild(emojiElement);
+        emojis.push({
+          element: emojiElement,
+          id: emojiElement.dataset.id,
+          y: -50,
+          speed: dropSpeed * (Math.random() * 0.4 + 0.8) * speedModifier,
+          type: emojiElement.dataset.type
+        });
+        
+        // Schedule next spawn
+        let nextInterval = dropInterval - (level - 1) * 50;
+        nextInterval = Math.max(nextInterval, 300);
+        spawnTimeout = setTimeout(spawnEmoji, nextInterval);
+      }
+      
+      // Handle emoji click/pointerdown
+      function handleEmojiClick(e) {
+        e.stopPropagation();
+        
+        const emojiElement = e.target;
+        const emojiId = emojiElement.dataset.id;
+        const emojiType = emojiElement.dataset.type;
+        
+        // Find emoji in array
+        const emojiIndex = emojis.findIndex(e => e.id === emojiId);
+        if (emojiIndex === -1) return;
+        
+        // Remove emoji from array and DOM
+        const emoji = emojis[emojiIndex];
+        emojis.splice(emojiIndex, 1);
+        emojiElement.remove();
+        
+        // Update score based on type
+        let points = 0;
+        let message = '';
+        
+        switch (emojiType) {
+          case 'healthy':
+            points = 5;
+            message = '+5';
+            updateCombo(true);
+            break;
+          case 'junk':
+            points = 20;
+            message = '+20';
+            speedModifier += 0.05;
+            updateCombo(true);
+            break;
+          case 'bomb':
+            points = -50;
+            message = '-50';
+            gameContainer.classList.add('shake');
+            setTimeout(() => {
+              gameContainer.classList.remove('shake');
+            }, 500);
+            resetCombo();
+            break;
+        }
+        
+        if (combo > 1 && points > 0) {
+          const bonusPoints = Math.floor(points * (combo - 1) * 0.5);
+          points += bonusPoints;
+          message = `+${points} (${combo}x)`;
+        }
+        
+        score += points;
+        scoreContainer.textContent = `Score: ${score}`;
+        scoreContainer.classList.add('pulse');
+        setTimeout(() => {
+          scoreContainer.classList.remove('pulse');
+        }, 500);
+        
+        const effect = document.createElement('div');
+        effect.className = 'effect';
+        effect.textContent = message;
+        effect.style.left = emojiElement.style.left;
+        effect.style.top = emojiElement.style.top;
+        effect.style.color = points < 0 ? '#FF4444' : points > 10 ? '#FFCC00' : '#44FF44';
+        
+        gameContainer.appendChild(effect);
+        setTimeout(() => {
+          effect.remove();
+        }, 1000);
+        
+        checkLevelUp();
+      }
+      
+      // Updated game state with collision detection and automatic catch
+      function updateGame() {
+        if (!gameActive) return;
+        
+        const playerRect = player.getBoundingClientRect();
+        const gameRect = gameContainer.getBoundingClientRect();
+        const playerTop = gameHeight - 70; // Player's top position
+        const playerHeight = 50;
+        const playerWidth = 100;
+
+        for (let i = emojis.length - 1; i >= 0; i--) {
+          const emoji = emojis[i];
+          emoji.y += emoji.speed;
+          emoji.element.style.top = emoji.y + 'px';
+          
+          // Collision detection
+          const emojiSize = 40;
+          const emojiBottom = emoji.y + emojiSize;
+          const emojiLeft = parseFloat(emoji.element.style.left);
+          const emojiRight = emojiLeft + emojiSize;
+          
+          const playerLeft = parseFloat(player.style.left);
+          const playerRight = playerLeft + playerWidth;
+          
+          // Check collision with player
+          if (emojiBottom >= playerTop && 
+              emojiRight > playerLeft && 
+              emojiLeft < playerRight) {
+            // Handle automatic catch
+            handleEmojiCatch(emoji);
+            emojis.splice(i, 1);
+            emoji.element.remove();
+            continue;
+          }
+          
+          if (emoji.y > gameHeight) {
+            emojis.splice(i, 1);
+            emoji.element.remove();
+            
+            if (emoji.type === 'healthy' || emoji.type === 'junk') {
+              score -= 10;
+              score = Math.max(score, 0);
+              scoreContainer.textContent = `Score: ${score}`;
+              resetCombo();
+              
+              const effect = document.createElement('div');
+              effect.className = 'effect';
+              effect.textContent = "-10";
+              effect.style.left = emoji.element.style.left;
+              effect.style.top = (gameHeight - 50) + 'px';
+              effect.style.color = '#FF4444';
+              
+              gameContainer.appendChild(effect);
+              setTimeout(() => {
+                effect.remove();
+              }, 1000);
+            }
+          }
+        }
+        
+        let targetX = Math.min(Math.max(mousePos.x - playerWidth / 2, 0), gameWidth - playerWidth);
+        player.style.left = targetX + 'px';
+        
+        requestAnimationFrame(updateGame);
+      }
+      
+      // New function to handle automatic catches
+      function handleEmojiCatch(emoji) {
+        let points = 0;
+        let message = '';
+        
+        switch (emoji.type) {
+          case 'healthy':
+            points = 5;
+            message = '+5';
+            updateCombo(true);
+            break;
+          case 'junk':
+            points = 20;
+            message = '+20';
+            speedModifier += 0.05;
+            updateCombo(true);
+            break;
+          case 'bomb':
+            points = -50;
+            message = '-50';
+            gameContainer.classList.add('shake');
+            setTimeout(() => {
+              gameContainer.classList.remove('shake');
+            }, 500);
+            resetCombo();
+            break;
+        }
+        
+        if (combo > 1 && points > 0) {
+          const bonusPoints = Math.floor(points * (combo - 1) * 0.5);
+          points += bonusPoints;
+          message = `+${points} (${combo}x)`;
+        }
+        
+        score += points;
+        scoreContainer.textContent = `Score: ${score}`;
+        scoreContainer.classList.add('pulse');
+        setTimeout(() => {
+          scoreContainer.classList.remove('pulse');
+        }, 500);
+        
+        const effect = document.createElement('div');
+        effect.className = 'effect';
+        effect.textContent = message;
+        effect.style.left = emoji.element.style.left;
+        effect.style.top = emoji.element.style.top;
+        effect.style.color = points < 0 ? '#FF4444' : points > 10 ? '#FFCC00' : '#44FF44';
+        
+        gameContainer.appendChild(effect);
+        setTimeout(() => {
+          effect.remove();
+        }, 1000);
+        
+        checkLevelUp();
+      }
+      
+      // Update combo counter
+      function updateCombo(increase = false) {
+        if (increase) {
+          combo++;
+          clearTimeout(comboTimeout);
+          comboTimeout = setTimeout(resetCombo, 3000);
+          
+          comboCounter.classList.add('pulse');
+          setTimeout(() => {
+            comboCounter.classList.remove('pulse');
+          }, 300);
+        }
+        
+        comboCounter.textContent = `Combo: ${combo}x`;
+        
+        if (combo >= 5) {
+          comboCounter.style.background = 'linear-gradient(to bottom, #FF0000, #8B0000)';
+        } else if (combo >= 3) {
+          comboCounter.style.background = 'linear-gradient(to bottom, #FF4500, #FF0000)';
+        } else {
+          comboCounter.style.background = 'linear-gradient(to bottom, #FF8C00, #FF4500)';
+        }
+      }
+      
+      // Reset combo counter
+      function resetCombo() {
+        combo = 0;
+        updateCombo();
+      }
+      
+      // Check for level up
+      function checkLevelUp() {
+        if (score >= level * 100) {
+          level++;
+          levelContainer.textContent = `Level: ${level}`;
+          levelContainer.classList.add('pulse');
+          setTimeout(() => {
+            levelContainer.classList.remove('pulse');
+          }, 500);
+          
+          showMessage(`LEVEL UP! ${level}`);
+          
+          gameTime += 10;
+          timeContainer.textContent = `Time: ${gameTime}s`;
+          timeContainer.classList.add('pulse');
+          setTimeout(() => {
+            timeContainer.classList.remove('pulse');
+          }, 500);
+        }
+      }
+      
+      // Show message
+      function showMessage(text) {
+        messageElement.textContent = text;
+        messageElement.style.opacity = 1;
+        setTimeout(() => {
+          messageElement.style.opacity = 0;
+        }, 2000);
+      }
+      
+      // End game
+      function endGame() {
+        gameActive = false;
+        clearTimeout(spawnTimeout);
+        clearInterval(gameTimer);
+        
+        finalScoreElement.textContent = `Your Score: ${score}`;
+        gameOverScreen.style.display = 'flex';
+      }
+      
+      // Event listeners
+      startButton.addEventListener('click', function() {
+        startScreen.style.display = 'none';
+        initGame();
+      });
+      
+      restartButton.addEventListener('click', function() {
+        gameOverScreen.style.display = 'none';
+        initGame();
+      });
+      
+      gameContainer.addEventListener('mousemove', function(e) {
+        if (!gameActive) return;
+        
+        const rect = gameContainer.getBoundingClientRect();
+        mousePos.x = e.clientX - rect.left;
+      });
+      
+      gameContainer.addEventListener('touchmove', function(e) {
+        if (!gameActive) return;
+        
+        e.preventDefault();
+        const rect = gameContainer.getBoundingClientRect();
+        touchPos.x = e.touches[0].clientX - rect.left;
+        mousePos.x = touchPos.x;
+      });
+      
+      gameContainer.addEventListener('touchstart', function(e) {
+        e.preventDefault();
+      });
+      
+      window.addEventListener('resize', function() {
+        gameWidth = gameContainer.offsetWidth;
+        gameHeight = gameContainer.offsetHeight;
+        playerWidth = player.offsetWidth;
+      });
+    });
+  </script>
+</body>
+</html>
